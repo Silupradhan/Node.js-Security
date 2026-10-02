@@ -1,6 +1,7 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import User from "../model/user.model";
+import bcrypt from "bcrypt";
 
 const router = Router();
 const jwtSecret = process.env.JWT_SECRET;
@@ -27,13 +28,13 @@ router.post("/register", async (req, res) => {
       return;
     }
 
-    
-
+    //hash the password before saving it to the database
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       name,
       email,
-      password,
+      password : hashedPassword,
       role: "user"
     });
 
@@ -77,8 +78,9 @@ router.post("/login", async (req, res) => {
       email: email.trim().toLowerCase()
     });
 
+   const isPasswordValid = await bcrypt.compare(password, user?.password!)
 
-    if (!user || user.password !== password) {
+    if (!user || !isPasswordValid) {
       res.status(401).json({ message: "Invalid email or password" });
       return;
     }
