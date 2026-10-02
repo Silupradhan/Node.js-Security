@@ -5,7 +5,19 @@ import healthRouter from "./routes/health.routes";
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || origin === process.env.FRONTEND_URL) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
+
+  credentials: true
+}));
+
+
 app.use(express.json());
 
 app.get("/", (_request, response) => {
