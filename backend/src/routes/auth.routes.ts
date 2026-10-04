@@ -1,25 +1,11 @@
 import { Router } from "express";
-import jwt from "jsonwebtoken";
 import User from "../model/user.model";
 import bcrypt from "bcrypt";
 import { setAuthCookies } from "../utils/cookie";
+import { authMiddleware } from "../middleware/auth.middleware";
+import { AuthenticatedRequest } from "../utils/types";
 
 const router = Router();
-const ACCESS_COOKIE = "access_token";
-
-function getAccessToken(req: { headers: { authorization?: string; cookie?: string } }) {
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.slice("Bearer ".length);
-  }
-
-  const accessCookie = req.headers.cookie
-    ?.split(";")
-    .map((cookie) => cookie.trim())
-    .find((cookie) => cookie.startsWith(`${ACCESS_COOKIE}=`));
-
-  return accessCookie?.slice(`${ACCESS_COOKIE}=`.length);
-}
 
 router.post("/register", async (req, res) => {
   try {
@@ -121,26 +107,14 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/me", async (req, res) => {
+router.get("/me", authMiddleware, async (req: AuthenticatedRequest, res) => {
   try {
-    const token = getAccessToken(req);
-    if (!token) {
-      res.status(401).json({ message: "Authentication required" });
+    if (!req.authUser) {
+      res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    let decoded: { userid: string; role: string };
-    try {
-      decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string) as {
-        userid: string;
-        role: string;
-      };
-    } catch {
-      res.status(401).json({ message: "Invalid or expired authentication token" });
-      return;
-    }
-
-    const user = await User.findById(decoded.userid).select("-password");
+    const user = await User.findById(req.authUser.userid).select("-password");
 
     if (!user) {
       res.status(404).json({ message: "User not found" });
