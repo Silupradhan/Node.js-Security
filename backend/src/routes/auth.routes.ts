@@ -2,9 +2,10 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import User from "../model/user.model";
 import bcrypt from "bcrypt";
+import { setAuthCookies } from "../utils/cookie";
 
 const router = Router();
-const jwtSecret = process.env.JWT_SECRET;
+// const jwtSecret = process.env.JWT_SECRET;
 
 router.post("/register", async (req, res) => {
   try {
@@ -56,11 +57,11 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    if (!jwtSecret) {
-      console.error("JWT_SECRET is not configured");
-      res.status(500).json({ message: "Authentication is not configured" });
-      return;
-    }
+    // if (!jwtSecret) {
+    //   console.error("JWT_SECRET is not configured");
+    //   res.status(500).json({ message: "Authentication is not configured" });
+    //   return;
+    // }
 
     const { email, password } = req.body as {
       email?: string;
@@ -85,18 +86,12 @@ router.post("/login", async (req, res) => {
       return;
     }
 
-    const token = jwt.sign(
-      {
-        userId: user._id.toString(),
-        role: user.role
-      },
-      jwtSecret,
-      { expiresIn: "1d" }
-    );
+    setAuthCookies(res, user._id.toString(), user.role);
+
 
     res.status(200).json({
       message: "Login successful",
-      token,
+      
       user: {
         id: user._id,
         name: user.name,
