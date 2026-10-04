@@ -11,8 +11,8 @@ const COOKIE_SAMESITE = process.env.COOKIE_SAMESITE
 function createCookieOptions(maxAge: number) {
   return{
     httpOnly: true,
-    secure: COOKIE_SECURE === "false",
-    sameSite: COOKIE_SAMESITE as "strict" | "lax" | "none",
+    secure: COOKIE_SECURE === "true",
+    sameSite: (COOKIE_SAMESITE || "lax") as "strict" | "lax" | "none",
     maxAge: maxAge,
     path: "/",
   }
@@ -21,8 +21,8 @@ function createCookieOptions(maxAge: number) {
 function createCsrfCookieOptions(maxAge: number) {
     return {
     httpOnly: true,
-    secure: COOKIE_SECURE === "false",
-    sameSite: COOKIE_SAMESITE as "strict" | "lax" | "none",
+    secure: COOKIE_SECURE === "true",
+    sameSite: (COOKIE_SAMESITE || "lax") as "strict" | "lax" | "none",
     maxAge: maxAge,
     path: "/",
     }

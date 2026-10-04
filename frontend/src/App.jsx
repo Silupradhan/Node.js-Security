@@ -16,20 +16,27 @@ function getStoredSession() {
 
 function App() {
   const [session, setSession] = useState(getStoredSession);
-  const [page, setPage] = useState("login");
+  const [page, setPage] = useState(
+    window.location.pathname === "/dashboard" || Boolean(getStoredSession())
+      ? "dashboard"
+      : "login"
+  );
 
   function handleLogin(nextSession) {
     localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession));
     setSession(nextSession);
+    window.history.pushState({}, "", "/dashboard");
+    setPage("dashboard");
   }
 
   function handleLogout() {
     localStorage.removeItem(SESSION_KEY);
     setSession(null);
+    window.history.pushState({}, "", "/");
     setPage("login");
   }
 
-  if (session) {
+  if (session && page === "dashboard") {
     return <Dashboard user={session.user} onLogout={handleLogout} />;
   }
 

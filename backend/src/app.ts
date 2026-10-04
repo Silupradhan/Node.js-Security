@@ -4,10 +4,11 @@ import authRouter from "./routes/auth.routes";
 import healthRouter from "./routes/health.routes";
 
 const app = express();
+const frontendOrigin = process.env.FRONTEND_URL?.replace(/\/$/, "");
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || origin === process.env.FRONTEND_URL) {
+    if (!origin || origin === frontendOrigin) {
       return callback(null, true);
     }
 

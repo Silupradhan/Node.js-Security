@@ -1,4 +1,57 @@
-function Dashboard({ user, onLogout }) {
+import { useEffect, useState } from "react";
+import { getCurrentUser } from "../api";
+
+function Dashboard({ user: initialUser, onLogout }) {
+  const [user, setUser] = useState(initialUser);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    getCurrentUser()
+      .then((response) => {
+        if (isCurrent) {
+          setUser(response.user);
+        }
+      })
+      .catch((reason) => {
+        if (isCurrent) {
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : "Unable to load your account."
+          );
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  if (error) {
+    return (
+      <main className="dashboard-layout">
+        <section className="dashboard-content">
+          <div className="error-message">{error}</div>
+          <button type="button" className="logout-button" onClick={onLogout}>
+            Return to sign in
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="dashboard-layout">
+        <section className="dashboard-content">
+          <p>Loading your account...</p>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="dashboard-layout">
       <nav className="topbar">

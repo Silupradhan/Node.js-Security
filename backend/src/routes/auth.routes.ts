@@ -5,7 +5,21 @@ import bcrypt from "bcrypt";
 import { setAuthCookies } from "../utils/cookie";
 
 const router = Router();
-// const jwtSecret = process.env.JWT_SECRET;
+const ACCESS_COOKIE = "access_token";
+
+function getAccessToken(req: { headers: { authorization?: string; cookie?: string } }) {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.slice("Bearer ".length);
+  }
+
+  const accessCookie = req.headers.cookie
+    ?.split(";")
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(`${ACCESS_COOKIE}=`));
+
+  return accessCookie?.slice(`${ACCESS_COOKIE}=`.length);
+}
 
 router.post("/register", async (req, res) => {
   try {
@@ -79,7 +93,9 @@ router.post("/login", async (req, res) => {
       email: email.trim().toLowerCase()
     });
 
-   const isPasswordValid = await bcrypt.compare(password, user?.password!)
+    const isPasswordValid = user
+      ? await bcrypt.compare(password, user.password)
+      : false;
 
     if (!user || !isPasswordValid) {
       res.status(401).json({ message: "Invalid email or password" });
@@ -102,6 +118,47 @@ router.post("/login", async (req, res) => {
   } catch (error: unknown) {
     console.error("Login failed:", error);
     res.status(500).json({ message: "Unable to login user" });
+  }
+});
+
+router.get("/me", async (req, res) => {
+  try {
+    const token = getAccessToken(req);
+    if (!token) {
+      res.status(401).json({ message: "Authentication required" });
+      return;
+    }
+
+    let decoded: { userid: string; role: string };
+    try {
+      decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string) as {
+        userid: string;
+        role: string;
+      };
+    } catch {
+      res.status(401).json({ message: "Invalid or expired authentication token" });
+      return;
+    }
+
+    const user = await User.findById(decoded.userid).select("-password");
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+    
+  } catch (error: unknown) {
+    console.error("Fetching user info failed:", error);
+    res.status(500).json({ message: "Unable to fetch user info" });
   }
 });
 
